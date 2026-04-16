@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Management Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+
+  <header class="navbar">
+    <h1>Hotel Management</h1>
+    <nav>
+      <a href="#" onclick="showSection('guests')">Guests</a>
+      <a href="#" onclick="showSection('reservations')">Reservations</a>
+      <a href="#" onclick="showSection('rooms')">Rooms</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section id="guests-section" class="section hidden">
+      <h2>Guest Management</h2>
+      <div class="card">
+        <input type="text" id="guestFName" placeholder="First Name">
+        <input type="text" id="guestLName" placeholder="Last Name">
+        <input type="text" id="guestPhone" placeholder="Phone">
+        <input type="email" id="guestEmail" placeholder="Email">
+        <textarea id="guestAddress" placeholder="Address"></textarea>
+        <input type="text" id="guestIdProof" placeholder="ID Proof Type">
+        <input type="text" id="guestIdNumber" placeholder="ID Number">
+        <button onclick="addGuest()">Add Guest</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Guest ID</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>ID Proof</th>
+              <th>Address</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="guestTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="reservations-section" class="section hidden">
+      <h2>Reservation Management</h2>
+      <div class="card">
+        <label>Guest</label>
+        <select id="guestSelect">
+          <option disabled selected>Select a guest</option>
+        </select>
+        <label>Bed Type</label>
+        <select id="bedTypeSelect" onchange="loadRooms()">
+          <option disabled selected>Select bed type</option>
+          <option value="Queen Bed">Queen Bed</option>
+          <option value="King Bed">King Bed</option>
+          <option value="Twin Bed">Twin Bed</option>
+        </select>
+        <label>Check-in</label>
+        <input type="date" id="checkIn">
+        <label>Check-out</label>
+        <input type="date" id="checkOut">
+        <div id="roomGrid" class="room-grid"></div>
+      </div>
+    </section>
+
+    <section id="rooms-section" class="section hidden">
+      <h2>Room Management</h2>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Room Number</th>
+              <th>Room Type</th>
+              <th>Status</th>
+              <th>Guest</th>
+              <th>Check-in</th>
+              <th>Check-out</th>
+            </tr>
+          </thead>
+          <tbody id="roomTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>

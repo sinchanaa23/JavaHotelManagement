@@ -1,0 +1,62 @@
+<!-- static/login.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login - Hotel Management</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body {
+      background-image: url('/login-bg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 2rem;
+      max-width: 400px;
+      margin: 10% auto;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <center><h2>Welcome to our hotel!</h2></center>
+    <input id="loginUser" placeholder="Username">
+    <input id="loginPass" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+  <script>
+    function login() {
+      fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("loginUser").value,
+          password: document.getElementById("loginPass").value
+        })
+      }).then(res => res.json()).then(data => {
+        if (data.success) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          const role = data.user.role;
+          if (role === "Admin") {
+            window.location.href = "/admin";
+          } else if (role === "Manager") {
+            window.location.href = "/manager";
+          } else {
+            window.location.href = "/dashboard";
+          }
+        } else {
+          document.getElementById("loginMsg").textContent = "Invalid login!";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

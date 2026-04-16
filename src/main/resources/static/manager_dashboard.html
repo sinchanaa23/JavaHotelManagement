@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manager Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <style> 
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f2f5;
+      color: #333;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #2c3e50;
+      color: white;
+      padding: 1rem 2rem;
+    }
+    .navbar div a {
+      color: white;
+      margin-left: 1.5rem;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+    .navbar div a:hover { color: #ecf0f1; }
+    .container { display: flex; }
+    .sidebar {
+      width: 220px;
+      background: #34495e;
+      color: white;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .sidebar a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    .sidebar a:hover { background: #2c3e50; }
+    .main { flex-grow: 1; padding: 2rem; }
+    .section { display: none; animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    h2 { margin-top: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background-color: #2c3e50; color: white; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div><strong>Hotel Manager Dashboard</strong></div>
+    <div><a href="#" onclick="logout()">Logout</a></div>
+  </div>
+  <div class="container">
+    <div class="sidebar">
+      <a href="#" onclick="showSection('guests')">All Guests</a>
+      <a href="#" onclick="showSection('payments')">Payments</a>
+    </div>
+    <div class="main">
+      <div id="guests" class="section">
+        <h2>All Guests</h2>
+        <table id="guestTable"></table>
+      </div>
+      <div id="services" class="section">
+        <h2>Services</h2>
+        <table id="serviceTable"></table>
+      </div>
+      <div id="payments" class="section">
+        <h2>Payments</h2>
+        <table id="paymentTable"></table>
+        <h3>Generate Bill</h3>
+        <select id="guestSelect" onchange="fetchBillDetails()"></select>
+        <div id="billDetails" style="margin-top: 20px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function renderTable(tableId, extractColumns) {
+      return data => {
+        const table = document.getElementById(tableId);
+        table.innerHTML = "";
+        if (!data.length) {
+          table.innerHTML = "<tr><td colspan='5'>No data available</td></tr>";
+          return;
+        }
+        const columns = extractColumns(data);
+        const thead = document.createElement("thead");
+        const headRow = document.createElement("tr");
+        columns.forEach(col => {
+          const th = document.createElement("th");
+          th.textContent = col.replace("_", " ").toUpperCase();
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+        const tbody = document.createElement("tbody");
+        data.forEach(item => {
+          const row = document.createElement("tr");
+          columns.forEach(col => {
+            const td = document.createElement("td");
+            td.textContent = item[col];
+            row.appendChild(td);
+          });
+          tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+      };
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/";
+    }
+
+    function fetchGuestsForBilling() {
+      fetch("/guests?fields=minimal")
+        .then(res => res.json())
+        .then(data => {
+          const select = document.getElementById("guestSelect");
+          select.innerHTML = '<option value="">Select Guest</option>';
+          data.forEach(guest => {
+            const option = document.createElement("option");
+            option.value = guest.guest_id;
+            option.textContent = `${guest.first_name} ${guest.last_name}`;
+            select.appendChild(option);
+          });
+        });
+    }
+
+    function fetchBillDetails() {
+      const guestId = document.getElementById("guestSelect").value;
+      if (!guestId) return;
+      fetch(`/bill/${guestId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data || data.success === false) {
+            document.getElementById("billDetails").innerHTML = "No reservation found.";
+            return;
+          }
+          document.getElementById("billDetails").innerHTML = `
+            <p><strong>Guest:</strong> ${data.guest_name}</p>
+            <p><strong>Room Number:</strong> ${data.room_number}</p>
+            <p><strong>Check-In:</strong> ${data.check_in}</p>
+            <p><strong>Check-Out:</strong> ${data.check_out}</p>
+            <p><strong>Rate per Night:</strong> ₹${data.base_price}</p>
+            <p><strong>Total Nights:</strong> ${data.nights}</p>
+            <p><strong>Total Amount:</strong> ₹${data.total_amount}</p>
+            <p><strong>Payment Status:</strong>
+              <button onclick="togglePaymentStatus(${data.reservation_id})"
+                      style="background-color: ${data.payment_status === 'Paid' ? 'green' : 'orange'}; color: white;">
+                ${data.payment_status}
+              </button>
+            </p>
+          `;
+        });
+    }
+
+    function togglePaymentStatus(reservationId) {
+      fetch(`/reservations/${reservationId}/checkout`, { method: "POST" })
+        .then(res => res.json())
+        .then(response => {
+          if (response.success) { alert("Marked as Paid!"); fetchBillDetails(); }
+          else alert("Error: " + response.message);
+        });
+    }
+
+    function initPayments() {
+      fetchGuestsForBilling();
+      fetch('/payments').then(res => res.json()).then(renderTable("paymentTable", data => ["payment_id", "reservation_id", "amount", "method", "payment_type"]));
+    }
+
+    function showSection(id) {
+      document.querySelectorAll(".section").forEach(el => el.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+      if (id === 'guests') fetch('/all-guests').then(res => res.json()).then(renderTable("guestTable", data => ["guest_id", "first_name", "last_name", "phone", "email"]));
+      if (id === 'services') fetch('/services').then(res => res.json()).then(renderTable("serviceTable", data => ["service_id", "name", "description", "price"]));
+      if (id === 'payments') initPayments();
+      if (id === 'guestServices') fetch('/guest-services').then(res => res.json()).then(renderTable("usageTable", data => ["id", "reservation_id", "service_id", "quantity", "date"]));
+    }
+
+    window.onload = () => showSection('guests');
+  </script>
+</body>
+</html>

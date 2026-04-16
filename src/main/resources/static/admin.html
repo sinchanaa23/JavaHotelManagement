@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body {
+      background-image: url('/login-bg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 2rem;
+      max-width: 800px;
+      margin: 2rem auto;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    h2, h3 { text-align: center; color: #333; }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      margin-top: 10px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    button:hover { background-color: #2980b9; }
+    .logout-btn { float: right; background-color: #e74c3c; }
+    .user-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    td[contenteditable="true"] { background-color: #fef9e7; outline: 1px dashed #aaa; cursor: text; }
+    td[contenteditable="true"]:focus { background-color: #fff9c4; outline: 2px solid #f1c40f; }
+    .user-table th, .user-table td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    .user-table th { background-color: #f8f8f8; }
+    .action-btn { padding: 5px 10px; margin: 0 5px; border: none; border-radius: 4px; cursor: pointer; }
+    .delete-btn { background-color: #c0392b; color: white; }
+    #adminMsg { margin-top: 10px; text-align: center; color: green; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <center><h2>Admin Panel</h2></center>
+    <h3>Add Manager/Receptionist</h3>
+    <input id="newUsername" placeholder="Username">
+    <input id="newEmail" type="email" placeholder="Email">
+    <input id="newPassword" type="password" placeholder="Password">
+    <select id="newRole">
+      <option value="Receptionist">Receptionist</option>
+      <option value="Manager">Manager</option>
+    </select>
+    <button onclick="addUser()">Add User</button>
+    <p id="adminMsg"></p>
+    <h3>All Users</h3>
+    <table class="user-table" id="userTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    function logout() {
+      localStorage.clear();
+      window.location.href = "/";
+    }
+
+    function addUser() {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user || user.role !== "Admin") { alert("Access denied."); return; }
+      fetch("/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("newUsername").value,
+          email: document.getElementById("newEmail").value,
+          password: document.getElementById("newPassword").value,
+          role: document.getElementById("newRole").value
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("adminMsg").textContent = data.success ? "User added!" : "Error: " + data.message;
+        if (data.success) loadUsers();
+      });
+    }
+
+    function loadUsers() {
+      fetch("/users")
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#userTable tbody");
+          tbody.innerHTML = "";
+          data.forEach(user => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${user.user_id}</td>
+              <td contenteditable="true" onblur="updateUser(${user.user_id}, 'username', this.textContent)">${user.username}</td>
+              <td contenteditable="true" onblur="updateUser(${user.user_id}, 'email', this.textContent)">${user.email}</td>
+              <td contenteditable="true" onblur="updateUser(${user.user_id}, 'role', this.textContent)">${user.role}</td>
+              <td><button class="action-btn delete-btn" onclick="deleteUser(${user.user_id})">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+          });
+        });
+    }
+
+    function updateUser(userId, field, value) {
+      fetch(`/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field, value })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const msg = document.getElementById("adminMsg");
+        if (!data.success) { alert("Update failed: " + data.message); }
+        else {
+          msg.textContent = "User updated successfully!";
+          msg.style.color = "green";
+          setTimeout(() => msg.textContent = "", 3000);
+        }
+      });
+    }
+
+    function deleteUser(userId) {
+      if (!confirm("Are you sure you want to delete this user?")) return;
+      fetch(`/users/${userId}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) loadUsers();
+          else alert("Delete failed: " + data.message);
+        });
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>
